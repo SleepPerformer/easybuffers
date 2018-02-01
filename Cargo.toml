@@ -1,0 +1,7 @@
+[package]
+name = "easybuffers"
+version = "0.1.0"
+authors = ["lijianghao <337990443@qq.com>"]
+
+[dependencies]
+time = "*"

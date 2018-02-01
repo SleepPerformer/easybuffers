@@ -1,0 +1,1 @@
+{"rustc":8291033049748019918,"features":"[]","target":10611775457450406917,"profile":8410117760005530537,"deps":[["time v0.1.39",9709604510275682474]],"local":[{"MtimeBased":[[1517498537,0],"/Users/lijianghao/Rust/gitlab/interchain-rpc/easybuffers/target/release/.fingerprint/easybuffers-8046b41916b56f3d/dep-lib-easybuffers-8046b41916b56f3d"]}],"rustflags":[]}
