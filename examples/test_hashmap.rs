@@ -6,9 +6,9 @@ use easybuffers::helper::{ Table, HyperHelper };
 
 #[derive(PartialEq,Clone,Default,Debug)]
 struct TestMap {
-    field_0: String,
-    field_1: HashMap<isize, String>,
-    field_2: bool
+    author: String,
+    map: HashMap<isize, String>,
+    boolean: bool
 }
 realize_table! {
     3, TestMap { 
@@ -33,5 +33,5 @@ fn main() {
     let mut data = bytes;
     let pivot = data.pop().unwrap() as usize;
     let de_instance = TestMap::deserialize(&data, pivot, pivot, 0, &helper);
-    println!("map is {:?}", de_instance.field_1);
+    println!("map is {:?}", de_instance.map);
 }

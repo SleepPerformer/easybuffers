@@ -4,35 +4,64 @@ use std::collections::hash_map::RandomState;
 use std::collections::HashMap;
 
 static SPACE: u8 = 0xff;
+/// 与 flatbuffers 思路一致， 但是仅使用 table，primitive 表示所有类型
+/// table => SPACE + vtable + data_len + pivot + data。 适用 T, Vec<T>, Option<T>, HashMap<K, V> 类型
+/// primitive => SPACE + origin [u8]。 使用Rust内置的基本类型
 #[derive(Debug)]
+/// HyperHelper 主要存储序列化和反序列化的全局信息 
+/// 暂时只存储 vtable 中每一个slot的大小（bytes）
 pub struct HyperHelper {
-    slot_size: usize // 暂时只支持 2bytes 版本
+    slot_size: usize 
 }
 impl HyperHelper {
+    /// 创建一个HyperHelper实例 参数是 序列化和反序列的 slot size
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// extern crate easybuffers;
+    /// use easybuffers::helper::{ Table, HyperHelper };
+    /// 
+    /// let helper = HyperHelper::new(2);
+    /// ```
     pub fn new(size: usize) -> HyperHelper {
         HyperHelper {
             slot_size: size
         }
     }
+    /// 设置 slot size 的大小
     pub fn set_slot_size(&mut self, num: usize) {
         self.slot_size = num;
     }
+    /// 获取 slot size 的大小
     pub fn slot_size(&self) -> usize {
         self.slot_size
     }
-    pub fn update_vtable(&self, table: &mut Vec<u8>, pivot_index: usize, position: usize) {
+    #[inline]
+    fn update_vtable(&self, table: &mut Vec<u8>, pivot_index: usize, position: usize) {
         let max = table[pivot_index] as usize;
         let offset = table.len() - pivot_index + 1;
-        // 更新vtable
         for i in 0..self.slot_size {
             table[pivot_index - self.slot_size*(max - position + 1) + i] = ((offset >> i*8) & 0xff) as u8;
         }
     }
 }
 impl HyperHelper {
+    /// 通过 二进制数组、pivot位置、字段索引 获取目标字段的pivot相对pivot的偏移量
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// extern crate easybuffers;
+    /// use easybuffers::helper::{ Table, HyperHelper };
+    /// 
+    /// let helper = HyperHelper::new(2);
+    /// let bytes = vec![255u8, 2, 0, 4, 0, 4, 0, 2, 255, 1, 255, 0]; // 2个字段 field_0, field_1
+    /// let field_1_index = HyperHelper::child_pivot(&bytes, 7, 1, &helper).unwrap();
+    /// assert_eq!(field_1_index, 11);
+    /// ```
     pub fn child_pivot(bytes: &Vec<u8>, pivot: usize, child: usize, helper: &HyperHelper) -> Option<usize> {
         let slot_size = helper.slot_size();
-
         let mut offset = 0usize;
         let mut scale = 1usize;
         let slot_num = bytes[pivot] as usize;
@@ -41,18 +70,46 @@ impl HyperHelper {
             offset += (bytes[pivot + i - (slot_num - child + 1) * slot_size] as usize) * scale;
             scale *= 256; 
         }
-        // println!("string 的 offst {}", offset);
         match offset {
             0 => return None,
             _ => return Some(pivot+offset),
         };
     }
+    /// 将最高层的pivot添加入最终参与网络传输的二进制数组的末尾
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// extern crate easybuffers;
+    /// use easybuffers::helper::{ Table, HyperHelper };
+    /// 
+    /// let helper = HyperHelper::new(2);
+    /// let mut bytes = vec![255u8, 2, 0, 4, 0, 4, 0, 2, 255, 1, 255, 0]; // 2个字段 field_0, field_1
+    /// HyperHelper::push_pivot(2, vec![255u8, 2, 0, 4, 0, 4, 0, 2, 255, 1, 255, 0, 7]);
+    /// assert_eq!(bytes, 11);
+    /// ```
     pub fn push_pivot(filds: u8, table:&mut Vec<u8>, helper: &HyperHelper) {
         let slot_size = helper.slot_size() as u8;
         table.push((1+filds)*slot_size + 1);
     }
-    // 专门用来获取某一字段的内容
-    // 返回 (pivot, help_pivot, position) 用做serialize的参数
+    /// 专门用来获取某一字段的内容 vec存储按层顺序的字段索引
+    /// 返回 (pivot, help_pivot, position) 用做serialize的参数
+    /// 
+    /// # Examples
+    /// 
+    /// ```
+    /// extern crate easybuffers;
+    /// use easybuffers::helper::{ Table, HyperHelper };
+    /// 
+    /// let helper = HyperHelper::new(2);
+    /// let mut bool_vec = vec![true, true, false, false, true];
+    /// let mut bytes = Vec::with_capacity(1024);
+    /// bool_vec.serialize(&mut bytes, 0, 0, &helper);
+    /// let mut fields = vec![2;1];
+    /// let (pivot, help_pivot, pisition) = HyperHelper::any_field(&mut fields, &mut bytes, 13, &helper).unwrap();
+    /// let res = bool::deserialize(&data, child, help, position, &helper);
+    /// assert_eq!(res, false);
+    /// ```
     pub fn any_field(fields: &mut Vec<usize>, table: & Vec<u8>, root: usize, helper: &HyperHelper) -> Option<(usize, usize, usize)> {
         let slot_size = helper.slot_size();
         let mut help_pivot = root;
@@ -73,24 +130,25 @@ impl HyperHelper {
         }
         Some((pivot, help_pivot, fields[len - 1] as usize))
     }
-    // 先定位到修改字段，然后分离出来 获取相关内容修改
-    // 
-    // pub fn modify(bytes:&mut Vec<u8>, )
 }
 
 pub trait Table {
-    /**
-     * bytes      : 完整的hypertable bytes
-     * pivot      : 字段的pivot在bytes中的索引 (是上一级 hypertable的一个字段)
-     * help pivot : 上一级 hypertable 的pivot 在bytes中的索引
-     * position   : 字段 在上一级 hypertable 的 slot 索引 好像没什么用
-     * renturn      序列化后的结果
-     */
+    /// /**
+    ///  * bytes      : 完整的hypertable bytes
+    ///  * pivot      : 字段的pivot在bytes中的索引 (是上一级 hypertable的一个字段)
+    ///  * help pivot : 上一级 hypertable 的pivot 在bytes中的索引
+    ///  * position   : 字段 在上一级 hypertable 的 slot 索引 好像没什么用
+    ///  * helper     : 存储全局信息
+    ///  * renturn      反序列化后的结果
+    ///  */
     fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> Self;
-    /**
-     * position 从0开始
-     * return       bytes + pivot
-    */
+    /// /**
+    ///  * bytes      : 完整的hypertable bytes
+    ///  * pivot      : 字段的pivot在bytes中的索引 (是上一级 hypertable的一个字段)
+    ///  * help pivot : 上一级 hypertable 的pivot 在bytes中的索引
+    ///  * position   : 字段 在上一级 hypertable 的 slot 索引 
+    ///  * helper     : 存储全局信息
+    ///  */
     fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper);
 }
 impl Table for String {
@@ -106,9 +164,6 @@ impl Table for String {
         }
         match next_child_pivot {
             None => {
-                // 之后的slot均为 None，字段的结束是help_pivot 的最后部分
-                // 通过循环获取到 offset
-
                 let mut offset = 0;
                 let mut scale = 1;
                 for i in 0..slot_size {
@@ -119,7 +174,7 @@ impl Table for String {
             },
             Some(n) => {
                 // 是某一个同级的pivot 获取该字段的start
-                if bytes[n - 1] == 0xff {
+                if bytes[n - 1] == SPACE {
                     return String::from_utf8(bytes[pivot..n-1].to_vec()).unwrap();
                 } else {
                     let end = n - (bytes[n] as usize + 1)*slot_size - 1; 
@@ -134,16 +189,9 @@ impl Table for String {
         let max = table[pivot_index] as usize;
         // 先判断是否需要更新
         if self.len() != 0 {
-            
-            // 获取偏移量 len + 1
-            // let offset = table.len() - pivot_index + 1;
-            // // 先更新vtable
-            // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-            // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
             helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
-            // 添加信息
             table.push(SPACE);
-            table.append(unsafe{self.as_mut_vec()});
+            table.append(unsafe{self.as_mut_vec()}); // delete unsafe
         }
         // 如果是最后一个字段需要 再更新len
         if max-1 == position {
@@ -155,12 +203,6 @@ impl Table for String {
     }
 }
 impl Table for bool {
-    /**
-     * bytes      : 完整的hypertable bytes
-     * pivot      : bool类型字段的pivot在bytes中的索引 (是上一级 hypertable的一个字段)
-     * help pivot : 上一级 hypertable 的pivot 在bytes中的索引
-     * position   : bool字段 在上一级 hypertable 的 slot 索引
-     */
     fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> bool {
         // 直接根据pivot的值可以直接判断
         if bytes[pivot] == 1u8 {
@@ -174,12 +216,6 @@ impl Table for bool {
     fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
@@ -204,17 +240,10 @@ impl Table for u8 {
     fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
         table.push(*self);
-        
         // 如果是最后一个字段需要 再更新end
         if max-1 == position {
             let len = table.len() - pivot_index - 1;
@@ -231,12 +260,6 @@ impl Table for u16 {
     fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
@@ -244,7 +267,6 @@ impl Table for u16 {
         table.push(b0);
         let b1:u8 = ((*self >> 8) & 0xff) as u8;
         table.push(b1);
-        
         // 如果是最后一个字段需要 再更新end
         if max-1 == position {
             let len = table.len() - pivot_index - 1;
@@ -267,12 +289,6 @@ impl Table for u32 {
     fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
@@ -282,16 +298,12 @@ impl Table for u32 {
             let b:u8 = ((*self >> i*8) & 0xff) as u8;
             table.push(b);
         }
-        // println!(" ser {} {} {} {}", b0, b1, b2, b3);
-        
         // 如果是最后一个字段需要 再更新end
         if max-1 == position {
             let len = table.len() - pivot_index - 1;
             for i in 0..slot_size {
                 table[pivot_index - slot_size + i] = ((len >> i*8) & 0xff) as u8;
             }
-            // table[pivot_index - slot_size] = (len & 0xff) as u8;
-            // table[pivot_index - slot_size + 1] = ((len >> 8) & 0xff) as u8;
         }
     }
 }
@@ -308,12 +320,6 @@ impl Table for u64 {
     fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
@@ -323,7 +329,6 @@ impl Table for u64 {
             let b:u8 = ((*self >> i*8) & 0xff) as u8;
             table.push(b);
         }
-        
         // 如果是最后一个字段需要 再更新end
         if max-1 == position {
             let len = table.len() - pivot_index - 1;
@@ -342,12 +347,6 @@ impl Table for usize {
         let self_as_u64 = *self as u64;
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
@@ -357,7 +356,6 @@ impl Table for usize {
             let b:u8 = ((self_as_u64 >> i*8) & 0xff) as u8;
             table.push(b);
         }
-        
         // 如果是最后一个字段需要 再更新end
         if max-1 == position {
             let len = table.len() - pivot_index - 1;
@@ -375,12 +373,6 @@ impl Table for i8 {
         let self_as_u8 = *self as u8;
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
@@ -403,12 +395,6 @@ impl Table for i16 {
         let self_as_u16 = *self as u16;
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
@@ -439,12 +425,6 @@ impl Table for i32 {
     fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
@@ -454,8 +434,6 @@ impl Table for i32 {
             let b:u8 = ((*self >> i*8) & 0xff) as u8;
             table.push(b);
         }
-        // println!(" ser {} {} {} {}", b0, b1, b2, b3);
-        
         // 如果是最后一个字段需要 再更新end
         if max-1 == position {
             let len = table.len() - pivot_index - 1;
@@ -478,12 +456,6 @@ impl Table for i64 {
     fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
@@ -493,7 +465,6 @@ impl Table for i64 {
             let b:u8 = ((*self >> i*8) & 0xff) as u8;
             table.push(b);
         }
-        
         // 如果是最后一个字段需要 再更新end
         if max-1 == position {
             let len = table.len() - pivot_index - 1;
@@ -511,27 +482,16 @@ impl Table for isize {
         let self_as_u64 = *self as u64;
         let slot_size = helper.slot_size();
         let max = table[pivot_index] as usize;
-        
-        // 获取偏移量 len + 1
-        // let offset = table.len() - pivot_index + 1;
-        // // 先更新vtable
-        // table[pivot_index - slot_size*(max - position + 1)] = (offset & 0xff) as u8;
-        // table[pivot_index - slot_size*(max - position + 1) + 1] = ((offset >> 8) & 0xff) as u8;
         helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
         // 添加信息
         table.push(SPACE);
-        // let b0:u8 = (self_as_u64 & 0xff) as u8;
-        // table.push(b0);
         for i in 0..8 {
             let b:u8 = ((self_as_u64 >> i*8) & 0xff) as u8;
             table.push(b);
         }
-        
         // 如果是最后一个字段需要 再更新end
         if max-1 == position {
             let len = table.len() - pivot_index - 1;
-            // table[pivot_index - slot_size] = (len & 0xff) as u8;
-            // table[pivot_index - slot_size + 1] = ((len >> 8) & 0xff) as u8;
             for i in 0..slot_size {
                 table[pivot_index - slot_size + i] = ((len >> i*8) & 0xff) as u8;
             }
@@ -580,7 +540,6 @@ impl<T> Table for Option<T> where T: Table {
         Some(T::deserialize(bytes, pivot, help_pivot, position, helper))
     }
     fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
-        // 判断是否为None
         match *self {
             None => {
                 // 有可能是最后一个内容，需要去更新len
@@ -593,11 +552,9 @@ impl<T> Table for Option<T> where T: Table {
                         for i in 0..slot_size {
                             table[pivot_index - slot_size + i] = ((len >> i*8) & 0xff) as u8;
                         }
-                        
                     }
                 }
             }
-            // 这里的调用可以不用添加vtable部分
             Some(ref mut t) => t.serialize(table, pivot_index, position, helper),
         }
     }
@@ -607,10 +564,8 @@ impl<T> Table for Vec<T> where T: Table {
     fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> Vec<T> {
         let slot_size = helper.slot_size();
         let mut vec = Vec::new();
-        // 通过查看slot来获取
         let e_num = bytes[pivot] as usize;
         for i in 0..e_num {
-            // 获取 offset
             let mut offset = 0;
             let mut scale = 1;
             for j in 0..slot_size {
@@ -631,22 +586,16 @@ impl<T> Table for Vec<T> where T: Table {
         table.append(&mut vtable);
         let child_pivot_index = table.len() - 1;
         table[child_pivot_index] = len as u8;
-        // println!("第一个 pivot {:?} position {}", table[pivot_index], position);
-        // println!("child pivot {:?} value {}", child_pivot_index, table[child_pivot_index]);
-        // 和之前一样的步骤 只是在添加数据部分使用循环
         for i in 0..len {
             self[i].serialize(table, child_pivot_index, i, helper);
         }
         if pivot_index != 0 {
             // 更新father的vtable
-            // 算出 child 和 pivot 的距离
             let max = table[pivot_index] as usize;
             let offset = child_pivot_index - pivot_index;
             for i in 0..slot_size {
                 table[pivot_index - slot_size*(1+max - position)+i] = ((offset >> i*8) & 0xff) as u8;
             }
-            // table[pivot_index - slot_size*(1+max - position)] = (offset & 0xff) as u8;
-            // table[pivot_index - slot_size*(1+max - position)+1] = ((offset >> 8) & 0xff) as u8;
             if position == max - 1 {
                 // 要更新father的len
                 let len = table.len() - 1 - pivot_index;
@@ -657,11 +606,51 @@ impl<T> Table for Vec<T> where T: Table {
         }
     }
 }
-
+/// 
+/// # Examples
+/// 
+/// ```
+/// #[macro_use]
+/// extern crate easybuffers;
+/// 
+/// use std::collections::HashMap;
+/// use easybuffers::helper::{ Table, HyperHelper };
+/// 
+/// #[derive(PartialEq,Clone,Default,Debug)]
+/// struct TestMap {
+///     author: String,
+///    map: HashMap<isize, String>,
+///     boolean: bool
+/// }
+/// realize_table! {
+///     3, TestMap { 
+///         author: String,
+///         map: HashMap,
+///         boolean: bool
+///     }
+/// }
+/// fn main() {
+///     let mut map = HashMap::new();
+///     let helper = HyperHelper::new(2); // 设置2字节表示数据偏移量
+///     map.insert(-100, String::from("Value"));
+///     map.insert(122222222222, String::from("Rust"));
+///     let mut instance = TestMap {
+///         author: String::from("SleepPerformer"),
+///         map: map,
+///         boolean: true
+///     };
+///     let mut bytes = Vec::with_capacity(1024);
+///     instance.serialize(&mut bytes,0,0,&helper);
+///     HyperHelper::push_pivot(3 ,&mut bytes,&helper); 
+///     let mut data = bytes;
+///     let pivot = data.pop().unwrap() as usize;
+///     let de_instance = TestMap::deserialize(&data, pivot, pivot, 0, &helper);
+///     println!("map is {:?}", de_instance.map);
+/// }
+/// ```
 impl<K, V> Table for HashMap<K, V, RandomState> // 无序的 map
 where K: Eq + Hash + Table + Clone, V: Table + Default {
     fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> HashMap<K, V, RandomState> {
-        // 将对象解析出来，然后放入 hashmap中
         let slot_size = helper.slot_size();
         let mut map = HashMap::new();
         let len = bytes[pivot] as usize; // 键值对的个数
@@ -672,10 +661,7 @@ where K: Eq + Hash + Table + Clone, V: Table + Default {
                 offset += bytes[pivot - slot_size*(len - i + 1)+ j] as usize *scale;
                 scale *= 256;
             }
-            // let offset = bytes[pivot - slot_size*(len - i + 1)] as usize 
-            //             + 256*(bytes[pivot - slot_size*(len - i + 1)+1] as usize);
             let inner_pivot = pivot + offset;
-
             let mut inner_offset_0 = 0;
             let mut inner_offset_1 = 0;
             let mut scale = 1;
@@ -684,13 +670,9 @@ where K: Eq + Hash + Table + Clone, V: Table + Default {
                 inner_offset_1 += bytes[inner_pivot - slot_size*(2 - 1 + 1)+ j] as usize*scale;
                 scale *= 256;
             }
-            // let inner_offset_0 = bytes[inner_pivot - slot_size*3] as usize 
-            //                 + (bytes[inner_pivot - slot_size*3+1] as usize)*256;
-            // println!("map 中 key字段的offset is {:?}",inner_offset_0);
             let child_pivot_0 = inner_pivot + inner_offset_0;
             let key = K::deserialize(bytes, child_pivot_0, inner_pivot, 0, helper);
 
-            // let inner_offset_1 = bytes[inner_pivot - slot_size*2] as usize + (bytes[inner_pivot - slot_size*2+1] as usize)*256;
             if inner_offset_1 != 0 {
                 let child_pivot_1 = inner_pivot + inner_offset_1;
                 let value = V::deserialize(bytes, child_pivot_1, inner_pivot, 1, helper);
@@ -698,9 +680,6 @@ where K: Eq + Hash + Table + Clone, V: Table + Default {
             } else {
                 map.insert(key, Default::default());
             }
-            
-            // value 可能为空 使用默认值
-            
         } 
         map
     }
@@ -726,26 +705,19 @@ where K: Eq + Hash + Table + Clone, V: Table + Default {
             for j in 0..slot_size {
                 table[child_pivot_index - slot_size*(len-i+1)+j] = ((offset >> j*8) & 0xff) as u8;
             }
-            // table[child_pivot_index - slot_size*(len-i+1)] = (offset & 0xff) as u8;
-            // table[child_pivot_index - slot_size*(len-i+1)+1] = ((offset >> 8) & 0xff) as u8;
             i += 1;
             // 对key进行转化
             let mut key = (*key).clone();// 可以优化
             key.serialize(table, inner_child_pivot_index, 0, helper);
-            // 对value进行转化
             value.serialize(table, inner_child_pivot_index, 1, helper);
-            // 对 child_pivot_index 所在table进行更新
         }
         // 把len 部分更新了
         let len = table.len() - 1 - child_pivot_index;
         for i in 0..slot_size {
             table[child_pivot_index - slot_size + i] = ((len >> i*8) & 0xff) as u8;
         }
-        // table[child_pivot_index - 2] = (len & 0xff) as u8;
-        // table[child_pivot_index - 1] = ((len >> 8) & 0xff) as u8;
         // 更新上级的 table
         if pivot_index != 0 {
-            // 更新father的vtable
             // 算出 child 和 pivot 的距离
             let max = table[pivot_index] as usize;
             
@@ -753,24 +725,57 @@ where K: Eq + Hash + Table + Clone, V: Table + Default {
             for i in 0..slot_size {
                 table[pivot_index - slot_size*(1+max - position)+i] = ((offset >> i*8) & 0xff) as u8;
             }
-            // table[pivot_index - slot_size*(1+max - position)] = (offset & 0xff) as u8;
-            // table[pivot_index - slot_size*(1+max - position)+1] = ((offset >> 8) & 0xff) as u8;
-            
             if position == max - 1 {
                 // 要更新father的len
                 let len = table.len() - 1 - pivot_index;
                 for i in 0..slot_size {
                     table[pivot_index - slot_size + i] = ((len >> i*8) & 0xff) as u8;
                 }
-                // table[pivot_index - 2] = (len & 0xff) as u8;
-                // table[pivot_index - 1] = ((len >> 8) & 0xff) as u8;
             }
         }
     }
 }
-
-// impl<K, V> Table for BTreeMap<K, V>
-// where K:
+/// 自动实现 `Table` trait 按要求输入字段总数，每个字段名以及类型
+/// 
+/// # Examples
+/// 
+/// ```
+/// #[macro_use]
+/// extern crate easybuffers;
+/// extern crate time;
+/// 
+/// use easybuffers::helper::{ Table, HyperHelper };
+/// 
+/// #[derive(PartialEq,Clone,Default,Debug)]
+/// struct TestMessage {
+///     field_0: Option<String>,
+///     field_1: Option<String>,
+///     field_2: Option<bool>,
+///     field_3: Option<String>,
+///     field_4: Option<bool>,
+///     field_5: Option<String>,
+///     field_6: Option<String>,
+///     field_7: Option<u32>,
+///     field_8: Option<String>,
+///     field_9: Option<String>,
+///     field_10: Option<bool>
+/// }
+/// realize_table! {
+///     11, TestMessage { 
+///         field_0 : Option,
+///         field_1 : Option,
+///         field_2 : Option,
+///         field_3 : Option,
+///         field_4 : Option,
+///         field_5 : Option,
+///         field_6 : Option,
+///         field_7 : Option,
+///         field_8 : Option,
+///         field_9 : Option,
+///         field_10 : Option
+///     }
+/// }
+/// ```
 #[macro_export]
 macro_rules! realize_table {
     ( $num:expr, $name:ident { $( $fname:ident : $ftype:ident),* } ) => {
@@ -780,7 +785,6 @@ macro_rules! realize_table {
                 let mut instance:$name = Default::default();
                 let mut index = 0;
                 $(  
-                    // println!("marco index {:?}", index);
                     match HyperHelper::child_pivot(bytes, pivot, index, helper) {
                         None => (), // 不做任何操作
                         Some(child_pivot) => {
@@ -793,7 +797,6 @@ macro_rules! realize_table {
             }
             fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
                 let field_num = $num; // 需要外部传入
-                // println!("marco field_num {:?}", field_num);
                 let slot_size = helper.slot_size(); // 需要全局定义
                 table.push(255u8); 
                 table.append(&mut vec![0u8;(field_num+1)*slot_size+1]);
@@ -803,29 +806,22 @@ macro_rules! realize_table {
                 let mut index = 0;
                 $(
                     self.$fname.serialize(table, child_pivot_index, index, helper);
-                    // println!("marco ser index {:?}", index);
                     index += 1;
                 )*
                 if pivot_index != 0 {
-                    // 更新father的vtable
-                    // 算出 child 和 pivot 的距离
                     let max = table[pivot_index] as usize;
                     let offset = child_pivot_index - pivot_index;
                     for i in 0..slot_size {
                         table[pivot_index - slot_size*(1+max - position)+i] = ((offset >> i*8) & 0xff) as u8;
                     }
                     if position == max - 1 {
-                        // 要更新father的len
                         let len = table.len() - 1 - pivot_index;
-                        // println!("child1 更新长度 {:?}", len);
                         for i in 0..slot_size {
                             table[pivot_index - slot_size + i] = ((len >> i*8) & 0xff) as u8;
                         }
                     }
                 }
-                
             }
         }
-
     }
 }
