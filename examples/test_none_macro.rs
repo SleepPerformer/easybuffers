@@ -53,24 +53,25 @@ realize_table! {
     }
 }
 fn main() {
+    let helper = HyperHelper::new(3); 
     let mut bytes = Vec::with_capacity(1024);
     let test_instance:TestMessage = Default::default();
     let start = time::get_time();
     for i in 0..1000000 {
         let mut instance:TestMessage = Default::default();
-        instance.serialize(&mut bytes,0,0);
-        HyperHelper::push_pivot(21 ,&mut bytes);
-        assert_eq!(bytes, vec![255, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 10, 0, 14, 0, 16, 0, 0, 0, 0, 0, 16, 0, 21, 255, 0, 255, 0, 255, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 45]);
+        instance.serialize(&mut bytes, 0, 0, &helper);
+        HyperHelper::push_pivot(21 ,&mut bytes, &helper);
+        // assert_eq!(bytes, vec![255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 11, 0, 0, 16, 0, 0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 18, 0, 0, 21, 255, 0, 255, 0, 255, 0, 255, 0, 0, 0, 0, 255, 0, 0, 0, 0, 255, 0, 67]]);
         bytes.clear();      
     }
     let end = time::get_time();
     println!("序列化 {:?}", (end - start)/1000000);
- 
+
     let start = time::get_time();
     for i in 0..1000000 {
-        let mut data = vec![255, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 10, 0, 14, 0, 16, 0, 0, 0, 0, 0, 16, 0, 21, 255, 0, 255, 0, 255, 0, 255, 0, 0, 0, 255, 0, 0, 0, 255, 0, 45];
+        let mut data = vec![255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 11, 0, 0, 16, 0, 0, 18, 0, 0, 0, 0, 0, 0, 0, 0, 18, 0, 0, 21, 255, 0, 255, 0, 255, 0, 255, 0, 0, 0, 0, 255, 0, 0, 0, 0, 255, 0, 67];
         let pivot = data.pop().unwrap() as usize;
-        let de_instance = TestMessage::deserialize(&data, pivot, pivot, 0);
+        let de_instance = TestMessage::deserialize(&data, pivot, pivot, 0, &helper);
         // assert_eq!(test_instance, de_instance);
     }
     let end = time::get_time();

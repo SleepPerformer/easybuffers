@@ -13,7 +13,7 @@ struct TestMessage {
     field_4: Option<bool>,
     field_5: Option<String>,
     field_6: Option<String>,
-    field_7: Option<bool>,
+    field_7: Option<u32>,
     field_8: Option<String>,
     field_9: Option<String>,
     field_10: Option<bool>
@@ -46,7 +46,7 @@ impl TestMessage {
             field_4 : Some(true),
             field_5 : Some(String::from("Rust")),
             field_6 : None,
-            field_7 : None,
+            field_7 : Some(700000u32),
             field_8 : Some(String::from("message_1")),
             field_9 : Some(String::from("without Option")),
             field_10 : Some(true)
@@ -69,26 +69,26 @@ realize_table! {
     }
 }
 fn main() {
+    let helper = HyperHelper::new(5);
     let mut bytes = Vec::with_capacity(1024);
     let test = TestMessage::init();
     let start = time::get_time();
     for i in 0..1000000 {
         let mut instance = TestMessage::init();
-        instance.serialize(&mut bytes,0,0);
-        HyperHelper::push_pivot(11 ,&mut bytes);
-        // assert_eq!(bytes, vec![255, 0, 0, 2, 0, 12, 0, 14, 0, 17, 0, 19, 0, 0, 0, 0, 0, 24, 0, 34, 0, 49, 0, 49, 0, 11, 255, 109, 101, 115, 115, 97, 103, 101, 95, 48, 255, 0, 255, 105, 110, 255, 1, 255, 82, 117, 115, 116, 255, 109, 101, 115, 115, 97, 103, 101, 95, 49, 255, 119, 105, 116, 104, 111, 117, 116, 32, 79, 112, 116, 105, 111, 110, 255, 1, 25]);
+        instance.serialize(&mut bytes, 0, 0, &helper);
+        HyperHelper::push_pivot(11 ,&mut bytes, &helper);
+        // assert_eq!(bytes, vec![255, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 12, 0, 0, 0, 0, 14, 0, 0, 0, 0, 17, 0, 0, 0, 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 29, 0, 0, 0, 0, 39, 0, 0, 0, 0, 54, 0, 0, 0, 0, 54, 0, 0, 0, 0, 11, 255, 109, 101, 115, 115, 97, 103, 101, 95, 48, 255, 0, 255, 105, 110, 255, 1, 255, 82, 117, 115, 116, 255, 96, 174, 10, 0, 255, 109, 101, 115, 115, 97, 103, 101, 95, 49, 255, 119, 105, 116, 104, 111, 117, 116, 32, 79, 112, 116, 105, 111, 110, 255, 1, 61]);
         bytes.clear();      
-        
     }
     let end = time::get_time();
     println!("序列化 {:?}", (end - start)/1000000);
-    
+
     let start = time::get_time();
     for i in 0..1000000 {
-        let mut data = vec![255, 0, 0, 2, 0, 12, 0, 14, 0, 17, 0, 19, 0, 0, 0, 0, 0, 24, 0, 34, 0, 49, 0, 49, 0, 11, 255, 109, 101, 115, 115, 97, 103, 101, 95, 48, 255, 0, 255, 105, 110, 255, 1, 255, 82, 117, 115, 116, 255, 109, 101, 115, 115, 97, 103, 101, 95, 49, 255, 119, 105, 116, 104, 111, 117, 116, 32, 79, 112, 116, 105, 111, 110, 255, 1, 25];
+        let mut data = vec![255, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 12, 0, 0, 0, 0, 14, 0, 0, 0, 0, 17, 0, 0, 0, 0, 19, 0, 0, 0, 0, 0, 0, 0, 0, 0, 24, 0, 0, 0, 0, 29, 0, 0, 0, 0, 39, 0, 0, 0, 0, 54, 0, 0, 0, 0, 54, 0, 0, 0, 0, 11, 255, 109, 101, 115, 115, 97, 103, 101, 95, 48, 255, 0, 255, 105, 110, 255, 1, 255, 82, 117, 115, 116, 255, 96, 174, 10, 0, 255, 109, 101, 115, 115, 97, 103, 101, 95, 49, 255, 119, 105, 116, 104, 111, 117, 116, 32, 79, 112, 116, 105, 111, 110, 255, 1, 61];
         let pivot = data.pop().unwrap() as usize;
-        let de_instance = TestMessage::deserialize(&data, pivot, pivot, 0);
-        // assert_eq!(de_instance, test);
+        let de_instance = TestMessage::deserialize(&data, pivot, pivot, 0, &helper);
+        assert_eq!(de_instance.field_7.unwrap(), 700000u32);
     }
     let end = time::get_time();
     println!("反序列化 10 {:?}", (end - start)/1000000);

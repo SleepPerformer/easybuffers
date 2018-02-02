@@ -45,78 +45,78 @@ impl TestMessage_0 {
 }
 
 impl Table for TestMessage_0 {
-    fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize) -> TestMessage_0 {
+    fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> TestMessage_0 {
         let mut instance = TestMessage_0::instance();
-        match HyperHelper::child_pivot(bytes, pivot, 0) {
+        match HyperHelper::child_pivot(bytes, pivot, 0, helper) {
             // List 先不考虑
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_0 = Option::deserialize(bytes, child_pivot, pivot, 0);// 传引用，这样省时间，到需要转换基本数据 才调用 to_vec
+                instance.field_0 = Option::deserialize(bytes, child_pivot, pivot, 0, helper);// 传引用，这样省时间，到需要转换基本数据 才调用 to_vec
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 1) {
+        match HyperHelper::child_pivot(bytes, pivot, 1, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_1 = Option::deserialize(bytes, child_pivot, pivot, 1);
+                instance.field_1 = Option::deserialize(bytes, child_pivot, pivot, 1, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 2) {
+        match HyperHelper::child_pivot(bytes, pivot, 2, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_2 = Option::deserialize(bytes, child_pivot, pivot, 2);
+                instance.field_2 = Option::deserialize(bytes, child_pivot, pivot, 2, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 3) {
+        match HyperHelper::child_pivot(bytes, pivot, 3, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_3 = Option::deserialize(bytes, child_pivot, pivot, 3);
+                instance.field_3 = Option::deserialize(bytes, child_pivot, pivot, 3, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 4) {
+        match HyperHelper::child_pivot(bytes, pivot, 4, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_4 = Option::deserialize(bytes, child_pivot, pivot, 4);
+                instance.field_4 = Option::deserialize(bytes, child_pivot, pivot, 4, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 5) {
+        match HyperHelper::child_pivot(bytes, pivot, 5, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_5 = Option::deserialize(bytes, child_pivot, pivot, 5);
+                instance.field_5 = Option::deserialize(bytes, child_pivot, pivot, 5, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 6) {
+        match HyperHelper::child_pivot(bytes, pivot, 6, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_6 = Option::deserialize(bytes, child_pivot, pivot, 6);
+                instance.field_6 = Option::deserialize(bytes, child_pivot, pivot, 6, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 7) {
+        match HyperHelper::child_pivot(bytes, pivot, 7, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_7 = Option::deserialize(bytes, child_pivot, pivot, 7);
+                instance.field_7 = Option::deserialize(bytes, child_pivot, pivot, 7, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 8) {
+        match HyperHelper::child_pivot(bytes, pivot, 8, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_8 = Option::deserialize(bytes, child_pivot, pivot, 8);
+                instance.field_8 = Option::deserialize(bytes, child_pivot, pivot, 8, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 9) {
+        match HyperHelper::child_pivot(bytes, pivot, 9, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_9 = Option::deserialize(bytes, child_pivot, pivot, 9);
+                instance.field_9 = Option::deserialize(bytes, child_pivot, pivot, 9, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 10) {
+        match HyperHelper::child_pivot(bytes, pivot, 10, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_10 = Option::deserialize(bytes, child_pivot, pivot, 10);
+                instance.field_10 = Option::deserialize(bytes, child_pivot, pivot, 10, helper);
             } 
         }
         instance
     }
-    fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize) {
+    fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let field_num = 11usize; // 需要外部传入
         let slot_size = 2; // 需要全局定义
         table.push(255u8); 
@@ -125,17 +125,17 @@ impl Table for TestMessage_0 {
         table[child_pivot_index] = field_num as u8; // 这里可以好好斟酌下
         // 更新每个字段
 
-        self.field_0.serialize(table, child_pivot_index, 0);
-        self.field_1.serialize(table, child_pivot_index, 1);
-        self.field_2.serialize(table, child_pivot_index, 2);
-        self.field_3.serialize(table, child_pivot_index, 3);
-        self.field_4.serialize(table, child_pivot_index, 4);
-        self.field_5.serialize(table, child_pivot_index, 5);
-        self.field_6.serialize(table, child_pivot_index, 6);
-        self.field_7.serialize(table, child_pivot_index, 7);
-        self.field_8.serialize(table, child_pivot_index, 8);
-        self.field_9.serialize(table, child_pivot_index, 9);
-        self.field_10.serialize(table, child_pivot_index, 10);
+        self.field_0.serialize(table, child_pivot_index, 0, helper);
+        self.field_1.serialize(table, child_pivot_index, 1, helper);
+        self.field_2.serialize(table, child_pivot_index, 2, helper);
+        self.field_3.serialize(table, child_pivot_index, 3, helper);
+        self.field_4.serialize(table, child_pivot_index, 4, helper);
+        self.field_5.serialize(table, child_pivot_index, 5, helper);
+        self.field_6.serialize(table, child_pivot_index, 6, helper);
+        self.field_7.serialize(table, child_pivot_index, 7, helper);
+        self.field_8.serialize(table, child_pivot_index, 8, helper);
+        self.field_9.serialize(table, child_pivot_index, 9, helper);
+        self.field_10.serialize(table, child_pivot_index, 10, helper);
         // 更新最终的长度
     
         if pivot_index != 0 {
@@ -180,7 +180,7 @@ impl TestMessageChild_0 {
     }
 }
 impl Table for TestMessageChild_0 {
-    fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize) {
+    fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let field_num = 5usize; // 需要外部传入
         let slot_size = 2; // 需要全局定义
         table.push(255u8); 
@@ -189,11 +189,11 @@ impl Table for TestMessageChild_0 {
         table[child_pivot_index] = field_num as u8; // 这里可以好好斟酌下
         // 更新每个字段
 
-        self.field_0.serialize(table, child_pivot_index, 0);
-        self.field_1.serialize(table, child_pivot_index, 1);
-        self.field_2.serialize(table, child_pivot_index, 2);
-        self.field_3.serialize(table, child_pivot_index, 3);
-        self.field_4.serialize(table, child_pivot_index, 4);
+        self.field_0.serialize(table, child_pivot_index, 0, helper);
+        self.field_1.serialize(table, child_pivot_index, 1, helper);
+        self.field_2.serialize(table, child_pivot_index, 2, helper);
+        self.field_3.serialize(table, child_pivot_index, 3, helper);
+        self.field_4.serialize(table, child_pivot_index, 4, helper);
     
         if pivot_index != 0 {
             // 更新father的vtable
@@ -212,36 +212,36 @@ impl Table for TestMessageChild_0 {
         }
         
     }
-    fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize) -> TestMessageChild_0 {
+    fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> TestMessageChild_0 {
         let mut instance = TestMessageChild_0::instance();
-        match HyperHelper::child_pivot(bytes, pivot, 0) {
+        match HyperHelper::child_pivot(bytes, pivot, 0, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_0 = Option::deserialize(bytes, child_pivot, pivot, 0);
+                instance.field_0 = Option::deserialize(bytes, child_pivot, pivot, 0, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 1) {
+        match HyperHelper::child_pivot(bytes, pivot, 1, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_1 = Option::deserialize(bytes, child_pivot, pivot, 1);
+                instance.field_1 = Option::deserialize(bytes, child_pivot, pivot, 1, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 2) {
+        match HyperHelper::child_pivot(bytes, pivot, 2, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_2 = Option::deserialize(bytes, child_pivot, pivot, 2);
+                instance.field_2 = Option::deserialize(bytes, child_pivot, pivot, 2, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 3) {
+        match HyperHelper::child_pivot(bytes, pivot, 3, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_3 = Option::deserialize(bytes, child_pivot, pivot, 3);
+                instance.field_3 = Option::deserialize(bytes, child_pivot, pivot, 3, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 4) {
+        match HyperHelper::child_pivot(bytes, pivot, 4, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_4 = Option::deserialize(bytes, child_pivot, pivot, 4);
+                instance.field_4 = Option::deserialize(bytes, child_pivot, pivot, 4, helper);
             } 
         }
         instance
@@ -269,7 +269,7 @@ impl TestMessageChild_1 {
 
 }
 impl Table for TestMessageChild_1 {
-    fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize) {
+    fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let field_num = 4usize; // 需要外部传入
         let slot_size = 2; // 需要全局定义
         table.push(255u8); 
@@ -278,10 +278,10 @@ impl Table for TestMessageChild_1 {
         table[child_pivot_index] = field_num as u8; // 这里可以好好斟酌下
         // 更新每个字段
 
-        self.field_0.serialize(table, child_pivot_index, 0);
-        self.field_1.serialize(table, child_pivot_index, 1);
-        self.field_2.serialize(table, child_pivot_index, 2);
-        self.field_3.serialize(table, child_pivot_index, 3);
+        self.field_0.serialize(table, child_pivot_index, 0, helper);
+        self.field_1.serialize(table, child_pivot_index, 1, helper);
+        self.field_2.serialize(table, child_pivot_index, 2, helper);
+        self.field_3.serialize(table, child_pivot_index, 3, helper);
    
         if pivot_index != 0 {
             // 更新father的vtable
@@ -301,30 +301,30 @@ impl Table for TestMessageChild_1 {
         }
         
     }
-    fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize) -> TestMessageChild_1 {
+    fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> TestMessageChild_1 {
         let mut instance = TestMessageChild_1::instance();
-        match HyperHelper::child_pivot(bytes, pivot, 0) {
+        match HyperHelper::child_pivot(bytes, pivot, 0, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_0 = Option::deserialize(bytes, child_pivot, pivot, 0);
+                instance.field_0 = Option::deserialize(bytes, child_pivot, pivot, 0, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 1) {
+        match HyperHelper::child_pivot(bytes, pivot, 1, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_1 = Option::deserialize(bytes, child_pivot, pivot, 1);
+                instance.field_1 = Option::deserialize(bytes, child_pivot, pivot, 1, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 2) {
+        match HyperHelper::child_pivot(bytes, pivot, 2, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_2 = Option::deserialize(bytes, child_pivot, pivot, 2);
+                instance.field_2 = Option::deserialize(bytes, child_pivot, pivot, 2, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 3) {
+        match HyperHelper::child_pivot(bytes, pivot, 3, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_3 = Option::deserialize(bytes, child_pivot, pivot, 3);
+                instance.field_3 = Option::deserialize(bytes, child_pivot, pivot, 3, helper);
             } 
         }
         instance
@@ -349,7 +349,7 @@ impl TestMessageChild_2 {
     }
 }
 impl Table for TestMessageChild_2 {
-    fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize) {
+    fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
         let field_num = 3usize; // 需要外部传入
         let slot_size = 2; // 需要全局定义
         table.push(255u8); 
@@ -357,9 +357,9 @@ impl Table for TestMessageChild_2 {
         let child_pivot_index = table.len() - 1;
         table[child_pivot_index] = field_num as u8; // 这里可以好好斟酌下
         // 更新每个字段
-        self.field_0.serialize(table, child_pivot_index, 0);
-        self.field_1.serialize(table, child_pivot_index, 1);
-        self.field_2.serialize(table, child_pivot_index, 2);
+        self.field_0.serialize(table, child_pivot_index, 0, helper);
+        self.field_1.serialize(table, child_pivot_index, 1, helper);
+        self.field_2.serialize(table, child_pivot_index, 2, helper);
         // 判断是否是要更新上一级的vtable
         if pivot_index == 0 {
             // 说明是最高一层, 不需要更新任何内容
@@ -379,24 +379,24 @@ impl Table for TestMessageChild_2 {
             }
         }
     }
-    fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize) -> TestMessageChild_2 {
+    fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> TestMessageChild_2 {
         let mut instance = TestMessageChild_2::instance();
-        match HyperHelper::child_pivot(bytes, pivot, 0) {
+        match HyperHelper::child_pivot(bytes, pivot, 0, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_0 = Option::deserialize(bytes, child_pivot, pivot, 0);
+                instance.field_0 = Option::deserialize(bytes, child_pivot, pivot, 0, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 1) {
+        match HyperHelper::child_pivot(bytes, pivot, 1, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_1 = Option::deserialize(bytes, child_pivot, pivot, 1);
+                instance.field_1 = Option::deserialize(bytes, child_pivot, pivot, 1, helper);
             } 
         }
-        match HyperHelper::child_pivot(bytes, pivot, 2) {
+        match HyperHelper::child_pivot(bytes, pivot, 2, helper) {
             None => (), // 不做任何操作
             Some(child_pivot) => {
-                instance.field_2 = Option::deserialize(bytes, child_pivot, pivot, 2);
+                instance.field_2 = Option::deserialize(bytes, child_pivot, pivot, 2, helper);
             } 
         }
         instance
@@ -456,17 +456,17 @@ fn main() {
     // let end = time::get_time();
     // println!("序列化 {:?}", (end - start)/1000000);
 
-    
+    let helper = HyperHelper::new(2);
     let start = time::get_time();
     let mut fields = vec![0usize, 2];
     for i in 0..1000000 {
         // let test_instance = father_instance();
         let mut data = vec![255, 10, 0, 133, 0, 0, 0, 0, 0, 143, 0, 150, 0, 160, 0, 193, 0, 215, 0, 0, 0, 229, 0, 72, 1, 11, 255, 12, 0, 53, 0, 92, 0, 121, 0, 3, 255, 2, 0, 10, 0, 29, 0, 0, 0, 29, 0, 4, 255, 102, 105, 101, 108, 100, 95, 48, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 49, 255, 0, 255, 2, 0, 10, 0, 0, 0, 0, 0, 27, 0, 4, 255, 102, 105, 101, 108, 100, 95, 48, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 49, 255, 2, 0, 10, 0, 29, 0, 0, 0, 29, 0, 4, 255, 102, 105, 101, 108, 100, 95, 48, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 49, 255, 1, 255, 102, 105, 101, 108, 100, 95, 49, 48, 48, 255, 70, 97, 116, 104, 101, 114, 255, 0, 255, 2, 0, 21, 0, 0, 0, 21, 0, 3, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 50, 255, 1, 255, 2, 0, 6, 0, 14, 0, 17, 0, 20, 0, 4, 255, 85, 115, 101, 255, 98, 117, 102, 102, 101, 114, 115, 255, 105, 110, 255, 82, 117, 115, 116, 255, 1, 255, 2, 0, 13, 0, 32, 0, 42, 0, 71, 0, 99, 0, 5, 255, 76, 97, 115, 116, 32, 102, 105, 101, 108, 100, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 48, 255, 0, 255, 2, 0, 21, 0, 0, 0, 21, 0, 3, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 50, 255, 1, 255, 10, 0, 24, 0, 28, 0, 2, 255, 2, 0, 4, 0, 6, 0, 6, 0, 3, 255, 1, 255, 0, 255, 0, 255, 2, 0, 4, 0, 4, 0, 2, 255, 0, 255, 1, 25];
         let pivot = data.pop().unwrap() as usize;
-        match HyperHelper::any_field(&mut fields, &mut data, pivot) {
+        match HyperHelper::any_field(&mut fields, &mut data, pivot, &helper) {
             None => println!("This field is None"),
             Some((child, help, position)) => {
-                let string = TestMessageChild_1::deserialize(&data, child, help, position);
+                let string = TestMessageChild_1::deserialize(&data, child, help, position, &helper);
                 // assert_eq!(string, test_instance.field_0.unwrap()[2]);
             },
         };
@@ -480,10 +480,10 @@ fn main() {
         // let test_instance = father_instance();
         let mut data = vec![255, 10, 0, 133, 0, 0, 0, 0, 0, 143, 0, 150, 0, 160, 0, 193, 0, 215, 0, 0, 0, 229, 0, 72, 1, 11, 255, 12, 0, 53, 0, 92, 0, 121, 0, 3, 255, 2, 0, 10, 0, 29, 0, 0, 0, 29, 0, 4, 255, 102, 105, 101, 108, 100, 95, 48, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 49, 255, 0, 255, 2, 0, 10, 0, 0, 0, 0, 0, 27, 0, 4, 255, 102, 105, 101, 108, 100, 95, 48, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 49, 255, 2, 0, 10, 0, 29, 0, 0, 0, 29, 0, 4, 255, 102, 105, 101, 108, 100, 95, 48, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 49, 255, 1, 255, 102, 105, 101, 108, 100, 95, 49, 48, 48, 255, 70, 97, 116, 104, 101, 114, 255, 0, 255, 2, 0, 21, 0, 0, 0, 21, 0, 3, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 50, 255, 1, 255, 2, 0, 6, 0, 14, 0, 17, 0, 20, 0, 4, 255, 85, 115, 101, 255, 98, 117, 102, 102, 101, 114, 115, 255, 105, 110, 255, 82, 117, 115, 116, 255, 1, 255, 2, 0, 13, 0, 32, 0, 42, 0, 71, 0, 99, 0, 5, 255, 76, 97, 115, 116, 32, 102, 105, 101, 108, 100, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 48, 255, 0, 255, 2, 0, 21, 0, 0, 0, 21, 0, 3, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 50, 255, 1, 255, 10, 0, 24, 0, 28, 0, 2, 255, 2, 0, 4, 0, 6, 0, 6, 0, 3, 255, 1, 255, 0, 255, 0, 255, 2, 0, 4, 0, 4, 0, 2, 255, 0, 255, 1, 25];
         let pivot = data.pop().unwrap() as usize;
-        match HyperHelper::any_field(&mut fields, &mut data, pivot) {
+        match HyperHelper::any_field(&mut fields, &mut data, pivot, &helper) {
             None => println!("This field is None"),
             Some((child, help, position)) => {
-                let string = bool::deserialize(&data, child, help, position);
+                let string = bool::deserialize(&data, child, help, position, &helper);
                 // assert_eq!(string, test_instance.field_10.unwrap().field_4.unwrap()[0][2]);
             },
         };
@@ -497,10 +497,10 @@ fn main() {
         // let test_instance = father_instance();
         let mut data = vec![255, 10, 0, 133, 0, 0, 0, 0, 0, 143, 0, 150, 0, 160, 0, 193, 0, 215, 0, 0, 0, 229, 0, 72, 1, 11, 255, 12, 0, 53, 0, 92, 0, 121, 0, 3, 255, 2, 0, 10, 0, 29, 0, 0, 0, 29, 0, 4, 255, 102, 105, 101, 108, 100, 95, 48, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 49, 255, 0, 255, 2, 0, 10, 0, 0, 0, 0, 0, 27, 0, 4, 255, 102, 105, 101, 108, 100, 95, 48, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 49, 255, 2, 0, 10, 0, 29, 0, 0, 0, 29, 0, 4, 255, 102, 105, 101, 108, 100, 95, 48, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 49, 255, 1, 255, 102, 105, 101, 108, 100, 95, 49, 48, 48, 255, 70, 97, 116, 104, 101, 114, 255, 0, 255, 2, 0, 21, 0, 0, 0, 21, 0, 3, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 50, 255, 1, 255, 2, 0, 6, 0, 14, 0, 17, 0, 20, 0, 4, 255, 85, 115, 101, 255, 98, 117, 102, 102, 101, 114, 115, 255, 105, 110, 255, 82, 117, 115, 116, 255, 1, 255, 2, 0, 13, 0, 32, 0, 42, 0, 71, 0, 99, 0, 5, 255, 76, 97, 115, 116, 32, 102, 105, 101, 108, 100, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 48, 255, 0, 255, 2, 0, 21, 0, 0, 0, 21, 0, 3, 255, 84, 101, 115, 116, 77, 101, 115, 115, 97, 103, 101, 67, 104, 105, 108, 100, 95, 50, 255, 1, 255, 10, 0, 24, 0, 28, 0, 2, 255, 2, 0, 4, 0, 6, 0, 6, 0, 3, 255, 1, 255, 0, 255, 0, 255, 2, 0, 4, 0, 4, 0, 2, 255, 0, 255, 1, 25];
         let pivot = data.pop().unwrap() as usize;
-        match HyperHelper::any_field(&mut fields, &mut data, pivot) {
+        match HyperHelper::any_field(&mut fields, &mut data, pivot, &helper) {
             None => println!("This field is None"),
             Some((child, help, position)) => {
-                let string = String::deserialize(&data, child, help, position);
+                let string = String::deserialize(&data, child, help, position, &helper);
                 // assert_eq!(string, test_instance.field_7.unwrap()[2]);
             },
         };
