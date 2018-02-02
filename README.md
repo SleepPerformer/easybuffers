@@ -2,6 +2,8 @@
 
 需要手动遍历序列化的实例的每个字段，但是序列化需要更大空间
 
+不需要使用Schema
+
 类型暂时仅支持 String, bool, u8, u16, u32, u64, usize, i8, i16, i32, i64, isize, HasmMap, Vec, Struct
 
 不支持&类型
@@ -47,13 +49,13 @@ use std::collections::HashMap;
 use easybuffers::helper::{ Table, HyperHelper };
 
 #[derive(PartialEq,Clone,Default,Debug)]
-struct TestStruct {
-    field_0: String,
-    field_1: HashMap<isize, String>,
-    field_2: bool
+struct TestMap {
+    author: String,
+    map: HashMap<isize, String>,
+    boolean: bool
 }
 realize_table! {
-    3, TestStruct { 
+    3, TestMap { 
         author: String,
         map: HashMap,
         boolean: bool
@@ -64,7 +66,7 @@ fn main() {
     let helper = HyperHelper::new(2); // 设置2字节表示数据偏移量
     map.insert(-100, String::from("Value"));
     map.insert(122222222222, String::from("Rust"));
-    let mut instance = TestStruct {
+    let mut instance = TestMap {
         author: String::from("SleepPerformer"),
         map: map,
         boolean: true
@@ -74,7 +76,7 @@ fn main() {
     HyperHelper::push_pivot(3 ,&mut bytes,&helper); 
     let mut data = bytes;
     let pivot = data.pop().unwrap() as usize;
-    let de_instance = TestStruct::deserialize(&data, pivot, pivot, 0, &helper);
-    println!("map is {:?}", de_instance.field_1);
+    let de_instance = TestMap::deserialize(&data, pivot, pivot, 0, &helper);
+    println!("map is {:?}", de_instance.map);
 }
 ```
