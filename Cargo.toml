@@ -1,7 +1,10 @@
 [package]
 name = "easybuffers"
-version = "0.1.0"
-authors = ["lijianghao <337990443@qq.com>"]
+version = "1.0.1"
+authors = ["SleepPerformer <337990443@qq.com>"]
+description = "Faster serialization and deserialization than protobuf."
+license = "MIT/Apache-2.0"
+repository = "https://github.com/SleepPerformer/easybuffers"
 
 [dependencies]
 time = "*"
