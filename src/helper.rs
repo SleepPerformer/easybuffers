@@ -26,7 +26,11 @@ impl VecU8 {
     pub fn to_vec_u8(self) -> Vec<u8> {
         self.inner
     }
+    pub fn to_slice<'a>(&'a self) -> &'a Vec<u8> {
+        &self.inner
+    }
 }
+// TODO
 // 暂时还没实现，看情况添加
 pub struct VecBool {
     inner: Vec<bool>
