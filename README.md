@@ -37,6 +37,8 @@ SPACE         vtable     | data_len | pivot | SPACE+data0  | SPACE+data1  | ~ |
 
 *Struct* 必须满足 *Default* trait ，*HashMap* key字段必须满足*Clone*且反序列化的结果顺序可能会变化
 
+可能需要对常用类型进行封装(极大程度的降低了序列化结果的大小) Vec<bool> => VecBool 、Vec<u16> => VecU16... 2.0版本添加了 最常用的 VecU8 
+
 欢迎与我交流 337990443@qq.com
 
 # How to use
