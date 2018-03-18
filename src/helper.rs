@@ -7,9 +7,40 @@ static SPACE: u8 = 0xff;
 /// 与 flatbuffers 思路一致， 但是仅使用 table，primitive 表示所有类型
 /// table => SPACE + vtable + data_len + pivot + data。 适用 T, Vec<T>, Option<T>, HashMap<K, V> 类型
 /// primitive => SPACE + origin [u8]。 使用Rust内置的基本类型
-#[derive(Debug)]
+#[derive(PartialEq,Clone,Default,Debug)]
 /// HyperHelper 主要存储序列化和反序列化的全局信息 
 /// 暂时只存储 vtable 中每一个slot的大小（bytes）
+// 封装Vec<u8> 方便序列化
+pub struct VecU8 {
+    inner: Vec<u8>
+}
+impl VecU8 {
+    pub fn init_with_vec_u8(data: Vec<u8>) -> VecU8 {
+        VecU8 {
+            inner: data
+        }
+    }
+    pub fn len(&self) -> usize{
+        self.inner.len()
+    }
+    pub fn to_vec_u8(self) -> Vec<u8> {
+        self.inner
+    }
+}
+// 暂时还没实现，看情况添加
+pub struct VecBool {
+    inner: Vec<bool>
+}
+impl VecBool {
+    pub fn init_with_vec_bool(data: Vec<bool>) -> VecBool {
+        VecBool {
+            inner: data
+        }
+    }
+    pub fn to_vec_bool(self) -> Vec<bool> {
+        self.inner
+    }
+}
 pub struct HyperHelper {
     slot_size: usize 
 }
@@ -534,6 +565,58 @@ impl Table for isize {
 //         }
 //     }
 // }
+impl Table for VecU8 {
+    fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> VecU8 {
+        let slot_size = helper.slot_size(); 
+        let father_slot_num = bytes[help_pivot] as usize;
+        let mut next_child_pivot = None;
+        for child_index in position+1..father_slot_num {
+            match HyperHelper::child_pivot(bytes, help_pivot, child_index, helper) {
+                Some(pivot) => { next_child_pivot = Some(pivot); break;},
+                None => (),
+            };
+        }
+        match next_child_pivot {
+            None => {
+                let mut offset = 0;
+                let mut scale = 1;
+                for i in 0..slot_size {
+                    offset += (bytes[help_pivot - slot_size + i] as usize)*scale;
+                    scale *= 256;
+                }
+                return VecU8::init_with_vec_u8(bytes[pivot..help_pivot+offset+1].to_vec());
+            },
+            Some(n) => {
+                // 是某一个同级的pivot 获取该字段的start
+                if bytes[n - 1] == SPACE {
+                    return VecU8::init_with_vec_u8(bytes[pivot..n-1].to_vec());
+                } else {
+                    let end = n - (bytes[n] as usize + 1)*slot_size - 1; 
+                    return VecU8::init_with_vec_u8(bytes[pivot..end].to_vec());
+                }
+            }
+        } 
+    }
+    // 调用 ser 前都要先添加 vtable 的占位空间
+    fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
+        let slot_size = helper.slot_size();
+        let max = table[pivot_index] as usize;
+        // 先判断是否需要更新
+        if self.len() != 0 {
+            helper.update_vtable(table, pivot_index, position); // 有一步多余操作，但影响不大
+            table.push(SPACE);
+            // let mut vec = self.inner;
+            table.append(&mut self.inner); 
+        }
+        // 如果是最后一个字段需要 再更新len
+        if max-1 == position {
+            let len = table.len() - pivot_index - 1;
+            for i in 0..slot_size {
+                table[pivot_index - slot_size + i] = ((len >> i*8) & 0xff) as u8;
+            }
+        }
+    }
+}
 impl<T> Table for Option<T> where T: Table {
     // 必须有值 为空不会走这个函数
     fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> Option<T> {
@@ -559,6 +642,7 @@ impl<T> Table for Option<T> where T: Table {
         }
     }
 }
+
 impl<T> Table for Vec<T> where T: Table {
     // 必须有值 为空不会走这个函数
     fn deserialize(bytes: &Vec<u8>, pivot: usize, help_pivot: usize, position: usize, helper: &HyperHelper) -> Vec<T> {
@@ -577,15 +661,18 @@ impl<T> Table for Vec<T> where T: Table {
         vec
     }
     fn serialize(&mut self, table: &mut Vec<u8>, pivot_index:usize, position: usize, helper: &HyperHelper) {
-        
+        // println!("Vec序列化");
         let slot_size = helper.slot_size();
         table.push(SPACE);
         // 先将 属于数组部分的vtable 部分添加上
         let len = self.len();
         let mut vtable = vec![0u8;(len + 1) * slot_size + 1];
+        
         table.append(&mut vtable);
+        
         let child_pivot_index = table.len() - 1;
         table[child_pivot_index] = len as u8;
+        println!("Vec序列化");
         for i in 0..len {
             self[i].serialize(table, child_pivot_index, i, helper);
         }
