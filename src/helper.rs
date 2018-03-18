@@ -128,7 +128,8 @@ impl HyperHelper {
         table.push((1+filds)*slot_size + 1);
     }
     /// 专门用来获取某一字段的内容 vec存储按层顺序的字段索引
-    /// 返回 (pivot, help_pivot, position) 用做serialize的参数
+    /// 返回 (pivot, help_pivot, position) 用做serialize的参数 
+    /// pivot 是当前需求字段的 pivot help_pivot 是上一级字段的pivot,如果没有上一级，值等于pivot, position是当前字段的第几部分，从0开始
     /// 
     /// # Examples
     /// 
@@ -155,8 +156,14 @@ impl HyperHelper {
             if table[pivot - 1] == 255 {
                 return Some((pivot, help_pivot, fields[i] as usize));
             }
-
-            let offset = table[(pivot - slot_size*((table[pivot] as usize)-fields[i] +1))] as usize;
+            // offset的计算需要使用循环
+            let mut offset = 0usize;
+            let mut scale = 1usize;
+            for j in 0..slot_size {
+                offset += scale*(table[(pivot - slot_size*((table[pivot] as usize)-fields[i] +1))+j] as usize);
+                scale *= 256;
+            }
+            // let offset = table[(pivot - slot_size*((table[pivot] as usize)-fields[i] +1))] as usize;
             if offset == 0 {
                 return None; // 直接说明已经是None了
             }
